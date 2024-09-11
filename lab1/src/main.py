@@ -2,6 +2,10 @@ import pyglet
 from game import Game
 from map import Map
 from ghost import Ghost
+import random 
+
+random.seed(42)
+
 
 def texture_set_mag_filter_nearest( texture ):
 	pyglet.gl.glBindTexture( texture.target, texture.id )
@@ -17,7 +21,10 @@ texture_set_mag_filter_nearest(wall_image.get_texture())
 small_apple_image = pyglet.image.load('sprites/small_apple.png')
 texture_set_mag_filter_nearest(small_apple_image.get_texture())
 
-map = Map(wall_image, small_apple_image, MAP_SIZE, TILE_SIZE)
+big_apple_image = pyglet.image.load('sprites/big_apple.png')
+texture_set_mag_filter_nearest(big_apple_image.get_texture())
+
+map = Map(wall_image, small_apple_image, big_apple_image, MAP_SIZE, TILE_SIZE)
 
 ghost_sheet = pyglet.image.load('sprites/ghost.png')
 ghost_images = pyglet.image.ImageGrid(ghost_sheet, 1, 4)
@@ -46,6 +53,7 @@ game = Game(map, ghosts)
 window = pyglet.window.Window(width=game.map.size * TILE_SIZE, height=game.map.size * TILE_SIZE)
 pyglet.gl.glClearColor(0,0,0,1)
 
+random.seed()
 
 @window.event
 def on_draw():
