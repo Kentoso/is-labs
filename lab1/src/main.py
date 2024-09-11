@@ -14,7 +14,10 @@ MAP_SIZE = 28
 wall_image = pyglet.image.load('sprites/wall.png')
 texture_set_mag_filter_nearest(wall_image.get_texture())
 
-map = Map(wall_image, MAP_SIZE, TILE_SIZE)
+small_apple_image = pyglet.image.load('sprites/small_apple.png')
+texture_set_mag_filter_nearest(small_apple_image.get_texture())
+
+map = Map(wall_image, small_apple_image, MAP_SIZE, TILE_SIZE)
 
 ghost_sheet = pyglet.image.load('sprites/ghost.png')
 ghost_images = pyglet.image.ImageGrid(ghost_sheet, 1, 4)

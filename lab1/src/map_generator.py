@@ -26,7 +26,7 @@ class MapGenerator:
 
         self.add_ghost_room(map, ghost_room_positions)
         self.add_border(map)
-        
+
         map = self.join_separated_blocks(map)
 
         return map
@@ -109,7 +109,7 @@ class MapGenerator:
         return map
 
     def simulate_tetris(self):
-        max_failed_attempts = 50
+        max_failed_attempts = 10
         failed_attempts = 0
         map_tile = np.zeros((self.map_size, self.map_size), dtype=int)
 

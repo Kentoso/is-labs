@@ -3,13 +3,19 @@ import pyglet
 from map_generator import MapGenerator
 
 class Map:
-    def __init__(self, wall_image, size, tile_size):
+    def __init__(self, wall_image, small_apple_image, size, tile_size):
         self.map = np.zeros((size, size))
+        self.apple_map = np.zeros((size, size))
+
         self.size = size
         self.generate()
 
         self.wall_sprites_batch = pyglet.graphics.Batch()
+        self.small_apple_sprites_batch = pyglet.graphics.Batch()
+
         self.wall_sprites = []
+        self.small_apple_sprites = []
+
         for x, row in enumerate(self.map):
             for y, tile in enumerate(row):
                 if tile == 1:
@@ -18,6 +24,15 @@ class Map:
                     wall_sprite.y = y * tile_size
                     wall_sprite.width, wall_sprite.height = tile_size, tile_size
                     self.wall_sprites.append(wall_sprite)
+
+        for x, row in enumerate(self.apple_map):
+            for y, tile in enumerate(row):
+                if tile == 1:
+                    apple_sprite = pyglet.sprite.Sprite(img=small_apple_image, batch=self.small_apple_sprites_batch)
+                    apple_sprite.x = x * tile_size
+                    apple_sprite.y = y * tile_size
+                    apple_sprite.width, apple_sprite.height = tile_size, tile_size
+                    self.small_apple_sprites.append(apple_sprite)
 
         self.ghosts_positions = []
 
@@ -31,7 +46,9 @@ class Map:
         room_positions = self.get_ghost_room_positions()
         
         map = MapGenerator(self.size).generate_map(room_positions)
+
         self.map = map
+        self.apple_map = np.abs(np.ones((self.size, self.size)) - self.map)
 
 
     def get_free_neighbours(self, x, y):
@@ -53,4 +70,5 @@ class Map:
     
     def on_draw(self, tile_size):
         self.wall_sprites_batch.draw()
+        self.small_apple_sprites_batch.draw()
 
