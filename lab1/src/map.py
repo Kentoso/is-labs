@@ -1,10 +1,24 @@
 import numpy as np
+import pyglet
+from map_generator import MapGenerator
 
 class Map:
-    def __init__(self, wall_sprite, size):
+    def __init__(self, wall_image, size, tile_size):
         self.map = np.zeros((size, size))
         self.size = size
-        self.wall_sprite = wall_sprite
+        self.generate()
+
+        self.wall_sprites_batch = pyglet.graphics.Batch()
+        self.wall_sprites = []
+        for x, row in enumerate(self.map):
+            for y, tile in enumerate(row):
+                if tile == 1:
+                    wall_sprite = pyglet.sprite.Sprite(img=wall_image, batch=self.wall_sprites_batch)
+                    wall_sprite.x = x * tile_size
+                    wall_sprite.y = y * tile_size
+                    wall_sprite.width, wall_sprite.height = tile_size, tile_size
+                    self.wall_sprites.append(wall_sprite)
+
         self.ghosts_positions = []
 
     def get_ghost_room_positions(self):
@@ -13,12 +27,12 @@ class Map:
         return [(center + offset[0], center + offset[1]) for offset in offsets]
 
     def generate(self):
-        self.map = np.random.randint(0, 2, (self.size, self.size))
-        # self.map = np.zeros((self.size, self.size))
+        self.map = np.zeros((self.size, self.size))
         room_positions = self.get_ghost_room_positions()
+        
+        map = MapGenerator(self.size).generate_map(room_positions)
+        self.map = map
 
-        for x, y in room_positions:
-            self.map[x, y] = 0
 
     def get_free_neighbours(self, x, y):
         neighbours = []
@@ -38,9 +52,5 @@ class Map:
         return neighbours
     
     def on_draw(self, tile_size):
-        for x, row in enumerate(self.map):
-            for y, tile in enumerate(row):
-                if tile == 1:
-                    self.wall_sprite.x = x * tile_size
-                    self.wall_sprite.y = y * tile_size
-                    self.wall_sprite.draw()
+        self.wall_sprites_batch.draw()
+

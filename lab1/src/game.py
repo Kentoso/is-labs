@@ -5,14 +5,13 @@ from ghost import Ghost
 class Game:
     def __init__(self, map: Map, ghosts: List[Ghost]):
         self.map: Map = map
-        self.map.generate()
 
         self.ghosts = ghosts
         ghost_room_positions = self.map.get_ghost_room_positions()
         for i, ghost in enumerate(self.ghosts):
             ghost.x, ghost.y = ghost_room_positions[i]
 
-        self.ghosts_speed = 1
+        self.ghosts_speed = 12
 
         self.map.ghosts_positions = [(ghost.x, ghost.y) for ghost in self.ghosts]
 
@@ -32,7 +31,7 @@ class Game:
 
     def update(self, dt):
         if self.frame % (60 // self.ghosts_speed) == 0:
-            for ghost in self.ghosts:
+            for i, ghost in enumerate(self.ghosts):
                 ghost.move(self.map)
-                self.map.ghosts_positions = [(ghost.x, ghost.y) for ghost in self.ghosts]
+                self.map.ghosts_positions[i] = (ghost.x, ghost.y)
 

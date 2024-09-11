@@ -15,10 +15,8 @@ class GhostStateWandering(GhostState):
         current_x, current_y = ghost.x, ghost.y
         neighbours = map.get_free_neighbours(current_x, current_y)
         if len(neighbours) > 0:
-            print((current_x, current_y), neighbours, self.prev_position)
 
             if len(neighbours) > 1 and self.prev_position is not None and self.prev_position in neighbours:
-                print(neighbours, self.prev_position)
                 neighbours.remove(self.prev_position)
 
             new_x, new_y = random.choice(neighbours)

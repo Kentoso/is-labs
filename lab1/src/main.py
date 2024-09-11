@@ -9,20 +9,19 @@ def texture_set_mag_filter_nearest( texture ):
 	pyglet.gl.glBindTexture( texture.target, 0 )
 
 TILE_SIZE = 28
+MAP_SIZE = 28
 
 wall_image = pyglet.image.load('sprites/wall.png')
 texture_set_mag_filter_nearest(wall_image.get_texture())
-wall = pyglet.sprite.Sprite(img=wall_image)
-wall.width, wall.height = TILE_SIZE, TILE_SIZE
 
-map = Map(wall, 16)
+map = Map(wall_image, MAP_SIZE, TILE_SIZE)
 
 ghost_sheet = pyglet.image.load('sprites/ghost.png')
 ghost_images = pyglet.image.ImageGrid(ghost_sheet, 1, 4)
 for image in ghost_images:
     texture_set_mag_filter_nearest(image.get_texture())
 
-NUMBER_OF_GHOSTS = 1
+NUMBER_OF_GHOSTS = 4
 
 ghosts = []
 
@@ -52,7 +51,6 @@ def on_draw():
 
 
 def update(dt):
-    
     game.frame += 1
     game.update(dt)
 
