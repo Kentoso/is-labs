@@ -11,19 +11,42 @@ class PacmanState(ABC):
         pass
 
 class PacmanStateBaseMove(PacmanState):
+    def __init__(self) -> None:
+        self.prev_position = None
+
     def move(self, pacman, map):
-        pass
+        current_direction = pacman.current_direction
+        direction_map = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        free_neighbours = map.get_free_neighbours(pacman.x, pacman.y)
+        if self.prev_position == (pacman.x, pacman.y):
+            if direction_map[current_direction] in free_neighbours:
+                pacman.x += direction_map[current_direction][0]
+                pacman.y += direction_map[current_direction][1]
+            else:
+                if len(free_neighbours) > 0:
+                    pacman.x, pacman.y = random.choice(free_neighbours)
+                else:
+                    print("PACMAN STUCK")
 
     def handle_apple(self, pacman, map, apple):
         if apple == 1:
             pacman.score += 10
         elif apple == 2:
             pacman.score += 50
-            pacman.state = PacmanStateBigApple()
+            # pacman.state = PacmanStateBigApple()
 
 class PacmanStateBigApple(PacmanState):
     def move(self, pacman, map):
-        pass
+        current_x, current_y = pacman.x, pacman.y
+        apple = map.get_random_apple()
+
+        if apple is not None:
+            path = map.bfs((current_x, current_y), apple)
+            if len(path) > 1:
+                pacman.x, pacman.y = path[1]
+
+        
+        self.prev_position = (current_x, current_y)
 
     def handle_apple(self, pacman, map, apple):
         if apple == 1:
@@ -32,22 +55,19 @@ class PacmanStateBigApple(PacmanState):
 
 class PacmanStateMove(PacmanStateBaseMove):
     def __init__(self) -> None:
-        self.prev_position = None
         super().__init__()
 
     def move(self, pacman, map):
         current_x, current_y = pacman.x, pacman.y
-        neighbours = map.get_free_neighbours(current_x, current_y)
-        if len(neighbours) > 0:
+        apple = map.get_nearest_apple((current_x, current_y))
 
-            if len(neighbours) > 1 and self.prev_position is not None and self.prev_position in neighbours:
-                neighbours.remove(self.prev_position)
+        if apple is not None:
+            path = map.bfs((current_x, current_y), apple)
+            if len(path) > 1:
+                pacman.x, pacman.y = path[1]
 
-            new_x, new_y = random.choice(neighbours)
-
-            pacman.x, pacman.y = new_x, new_y
-        
         self.prev_position = (current_x, current_y)
+        super().move(pacman, map)
     
 
 
@@ -68,14 +88,14 @@ class Pacman:
         apple = map.try_eat_apple(self.x, self.y)
         self.state.handle_apple(self, map, apple)
 
-        if self.x > previous_x:
-            self.current_direction = 1
-        elif self.x < previous_x:
-            self.current_direction = 3
-        elif self.y > previous_y:
+        if self.y > previous_y:
             self.current_direction = 0
+        elif self.x > previous_x:
+            self.current_direction = 1
         elif self.y < previous_y:
             self.current_direction = 2
+        elif self.x < previous_x:
+            self.current_direction = 3
         
 
     def on_draw(self, tile_size):

@@ -15,7 +15,7 @@ def texture_set_mag_filter_nearest( texture ):
 
 def start_game():
     TILE_SIZE = 28
-    MAP_SIZE = 28
+    MAP_SIZE = 16
 
     wall_image = pyglet.image.load('sprites/wall.png')
     texture_set_mag_filter_nearest(wall_image.get_texture())

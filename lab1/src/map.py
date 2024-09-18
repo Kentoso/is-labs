@@ -39,14 +39,12 @@ class Map:
                     apple_sprite.x = x * tile_size
                     apple_sprite.y = y * tile_size
                     apple_sprite.width, apple_sprite.height = tile_size, tile_size
-                    # self.small_apple_sprites.append(apple_sprite)
                     self.apple_sprites[x][y] = apple_sprite
                 elif tile == 2:
                     apple_sprite = pyglet.sprite.Sprite(img=big_apple_image, batch=self.big_apple_sprites_batch)
                     apple_sprite.x = x * tile_size
                     apple_sprite.y = y * tile_size
                     apple_sprite.width, apple_sprite.height = tile_size, tile_size
-                    # self.big_apple_sprites.append(apple_sprite)
                     self.apple_sprites[x][y] = apple_sprite
 
 
@@ -120,3 +118,102 @@ class Map:
         self.small_apple_sprites_batch.draw()
         self.big_apple_sprites_batch.draw()
 
+    def get_random_apple(self):
+        big_apples = np.argwhere(self.apple_map == 2)
+        if len(big_apples) > 0:
+            return tuple(big_apples[0].astype(int))
+        
+        small_apples = np.argwhere(self.apple_map == 1)
+        if len(small_apples) > 0:
+            return tuple(small_apples[0].astype(int))
+        
+        return None
+    
+    def get_nearest_apple(self, position):
+        apples = np.argwhere(self.apple_map == 1)
+        big_apples = np.argwhere(self.apple_map == 2)
+        merged_apples = np.concatenate((apples, big_apples), axis=0)
+        if len(apples) == 0:
+            return None
+        return tuple(min(merged_apples, key=lambda x: abs(x[0] - position[0]) + abs(x[1] - position[1])))
+
+    def bfs(self, start, finish):
+        queue = [start]
+        visited = np.zeros((self.size, self.size))
+        visited[start] = 1
+        parent = np.zeros((self.size, self.size, 2))
+
+        while len(queue) > 0:
+            current = tuple(queue.pop(0))
+            if current == finish:
+                path = []
+                while current != start:
+                    path.append(current)
+                    current = tuple(parent[current[0], current[1]].astype(int))
+                path.append(start)
+                return path[::-1]
+
+            for neighbour in self.get_free_neighbours(*current):
+                if visited[neighbour] == 0:
+                    visited[neighbour] = 1
+                    parent[neighbour[0], neighbour[1]] = current
+                    queue.append(neighbour)
+
+        return []
+
+    def dijkstra(self, start, finish):
+        distances = np.ones((self.size, self.size)) * np.inf
+        distances[start] = 0
+
+        visited = np.zeros((self.size, self.size))
+        parent = np.zeros((self.size, self.size, 2))
+
+        while True:
+            current = np.unravel_index(np.argmin(distances), distances.shape)
+            if current == finish:
+                path = []
+                while current != start:
+                    path.append(current)
+                    current = parent[current[0], current[1]]
+                path.append(start)
+                return path[::-1]
+
+            visited[current] = 1
+            distances[current] = np.inf
+
+            for neighbour in self.get_free_neighbours(*current):
+                if visited[neighbour] == 0:
+                    new_distance = distances[current] + 1
+                    if new_distance < distances[neighbour]:
+                        distances[neighbour] = new_distance
+                        parent[neighbour[0], neighbour[1]] = current
+    
+    def a_star(self, start, finish):
+        def heuristic(a, b):
+            return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+        open_set = {start}
+        came_from = {}
+        g_score = {start: 0}
+        f_score = {start: heuristic(start, finish)}
+
+        while len(open_set) > 0:
+            current = min(open_set, key=lambda x: f_score[x])
+            if current == finish:
+                path = []
+                while current != start:
+                    path.append(current)
+                    current = came_from[current]
+                path.append(start)
+                return path[::-1]
+
+            open_set.remove(current)
+            for neighbour in self.get_free_neighbours(*current):
+                tentative_g_score = g_score[current] + 1
+                if neighbour not in g_score or tentative_g_score < g_score[neighbour]:
+                    came_from[neighbour] = current
+                    g_score[neighbour] = tentative_g_score
+                    f_score[neighbour] = g_score[neighbour] + heuristic(neighbour, finish)
+                    open_set.add(neighbour)
+
+        return []
