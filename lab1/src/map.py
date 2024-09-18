@@ -6,6 +6,7 @@ import random
 class Map:
     def __init__(self, wall_image, small_apple_image, big_apple_image, size, tile_size):
         self.ghosts_positions = []
+        self.pacman_position = None
 
         self.map = np.zeros((size, size))
         self.apple_map = np.zeros((size, size))
@@ -20,7 +21,9 @@ class Map:
         self.wall_sprites = []
         self.small_apple_sprites = []
         self.big_apple_sprites = []
-
+        self.apple_sprites = [[None] * size for _ in range(size)]
+        print(self.apple_sprites)
+                
 
         for x, row in enumerate(self.map):
             for y, tile in enumerate(row):
@@ -38,19 +41,37 @@ class Map:
                     apple_sprite.x = x * tile_size
                     apple_sprite.y = y * tile_size
                     apple_sprite.width, apple_sprite.height = tile_size, tile_size
-                    self.small_apple_sprites.append(apple_sprite)
+                    # self.small_apple_sprites.append(apple_sprite)
+                    self.apple_sprites[x][y] = apple_sprite
                 elif tile == 2:
                     apple_sprite = pyglet.sprite.Sprite(img=big_apple_image, batch=self.big_apple_sprites_batch)
                     apple_sprite.x = x * tile_size
                     apple_sprite.y = y * tile_size
                     apple_sprite.width, apple_sprite.height = tile_size, tile_size
-                    self.big_apple_sprites.append(apple_sprite)
+                    # self.big_apple_sprites.append(apple_sprite)
+                    self.apple_sprites[x][y] = apple_sprite
 
 
     def get_ghost_room_positions(self):
         center = self.size // 2 - 1
         offsets = [(0,0), (1,0), (0,1), (1,1)]
         return [(center + offset[0], center + offset[1]) for offset in offsets]
+
+    def get_random_empty_space(self):
+        x = random.randint(0, self.size - 1)
+        y = random.randint(0, self.size - 1)
+        while self.map[x, y] == 1:
+            x = random.randint(0, self.size - 1)
+            y = random.randint(0, self.size - 1)
+        return x, y
+
+    def try_eat_apple(self, x, y):
+        apple = self.apple_map[x, y]
+        self.apple_map[x, y] = 0
+        if self.apple_sprites[x][y]:
+            self.apple_sprites[x][y].delete()
+            self.apple_sprites[x][y] = None
+        return apple
 
     def generate(self):
         self.map = np.zeros((self.size, self.size))
