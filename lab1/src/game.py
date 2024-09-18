@@ -2,6 +2,7 @@ from map import Map
 from typing import List
 from ghost import Ghost
 from pacman import Pacman
+import pyglet 
 
 class Game:
     def __init__(self, map: Map, ghosts: List[Ghost], pacman: Pacman):
@@ -14,7 +15,7 @@ class Game:
 
         self.pacman.x, self.pacman.y = self.map.get_random_empty_space()
 
-        self.ghosts_speed = 12
+        self.ghosts_speed = 5
 
         self.map.ghosts_positions = [(ghost.x, ghost.y) for ghost in self.ghosts]
         self.map.pacman_position = (pacman.x, pacman.y)
@@ -36,6 +37,13 @@ class Game:
             ghost.on_draw(tile_size)
         self.pacman.on_draw(tile_size)
 
+        score = pyglet.text.Label(f"Score: {self.pacman.score}",
+                                  font_name='Arial',
+                                  font_size=16,
+                                  x=0, y=self.map.size * tile_size,
+                                  anchor_x='left', anchor_y='top')
+        score.draw()
+
     def update(self, dt):
         if self.frame % (60 // self.ghosts_speed) == 0:
             for i, ghost in enumerate(self.ghosts):
@@ -45,4 +53,6 @@ class Game:
         if self.frame % (60 // 12) == 0:
             self.pacman.move(self.map)
             self.map.pacman_position = (self.pacman.x, self.pacman.y)
+
+        
 

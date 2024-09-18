@@ -22,8 +22,6 @@ class Map:
         self.small_apple_sprites = []
         self.big_apple_sprites = []
         self.apple_sprites = [[None] * size for _ in range(size)]
-        print(self.apple_sprites)
-                
 
         for x, row in enumerate(self.map):
             for y, tile in enumerate(row):
