@@ -174,19 +174,24 @@ class Map:
                 path = []
                 while current != start:
                     path.append(current)
-                    current = parent[current[0], current[1]]
+                    current = tuple(parent[current[0], current[1]].astype(int))
                 path.append(start)
                 return path[::-1]
 
             visited[current] = 1
-            distances[current] = np.inf
+            neighbours = self.get_free_neighbours(*current)
+            if len(neighbours) == 0:
+                return []
 
-            for neighbour in self.get_free_neighbours(*current):
+            for neighbour in neighbours:
                 if visited[neighbour] == 0:
                     new_distance = distances[current] + 1
                     if new_distance < distances[neighbour]:
                         distances[neighbour] = new_distance
                         parent[neighbour[0], neighbour[1]] = current
+            
+            distances[current] = np.inf
+
     
     def a_star(self, start, finish):
         def heuristic(a, b):
