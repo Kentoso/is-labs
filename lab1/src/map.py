@@ -137,6 +137,13 @@ class Map:
             return None
         return tuple(min(merged_apples, key=lambda x: abs(x[0] - position[0]) + abs(x[1] - position[1])))
 
+    def get_pacman_cost(self, position):
+        cost = 0
+        for ghost_position in self.ghosts_positions:
+            cost += 1 / (abs(ghost_position[0] - position[0]) + abs(ghost_position[1] - position[1]) + 1)
+        
+        return cost
+
     def bfs(self, start, finish):
         queue = [start]
         visited = np.zeros((self.size, self.size))
@@ -161,7 +168,7 @@ class Map:
 
         return []
 
-    def dijkstra(self, start, finish):
+    def dijkstra(self, start, finish, cost_function=None):
         distances = np.ones((self.size, self.size)) * np.inf
         distances[start] = 0
 
@@ -185,7 +192,10 @@ class Map:
 
             for neighbour in neighbours:
                 if visited[neighbour] == 0:
-                    new_distance = distances[current] + 1
+                    if cost_function:
+                        new_distance = distances[current] + 1 + cost_function(neighbour)
+                    else:
+                        new_distance = distances[current] + 1
                     if new_distance < distances[neighbour]:
                         distances[neighbour] = new_distance
                         parent[neighbour[0], neighbour[1]] = current
@@ -193,7 +203,7 @@ class Map:
             distances[current] = np.inf
 
     
-    def a_star(self, start, finish):
+    def a_star(self, start, finish, cost_function=None):
         def heuristic(a, b):
             return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
@@ -214,7 +224,10 @@ class Map:
 
             open_set.remove(current)
             for neighbour in self.get_free_neighbours(*current):
-                tentative_g_score = g_score[current] + 1
+                if cost_function:
+                    tentative_g_score = g_score[current] + 1 + cost_function(neighbour)
+                else:
+                    tentative_g_score = g_score[current] + 1
                 if neighbour not in g_score or tentative_g_score < g_score[neighbour]:
                     came_from[neighbour] = current
                     g_score[neighbour] = tentative_g_score

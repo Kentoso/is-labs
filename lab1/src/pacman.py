@@ -62,7 +62,7 @@ class PacmanStateMove(PacmanStateBaseMove):
         apple = map.get_nearest_apple((current_x, current_y))
 
         if apple is not None:
-            path = map.dijkstra((current_x, current_y), apple)
+            path = map.dijkstra((current_x, current_y), apple, map.get_pacman_cost)
             if len(path) > 1:
                 pacman.x, pacman.y = path[1]
 
