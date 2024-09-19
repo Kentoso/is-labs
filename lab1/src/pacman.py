@@ -24,9 +24,17 @@ class PacmanStateBaseMove(PacmanState):
                 pacman.y += direction_map[current_direction][1]
             else:
                 if len(free_neighbours) > 0:
-                    pacman.x, pacman.y = random.choice(free_neighbours)
+                    new_x, new_y = random.choice(free_neighbours)
+                    current_direction = -1
+                    for i, direction in enumerate(direction_map):
+                        if direction + (pacman.x, pacman.y) == (new_x, new_y):
+                            current_direction = i
+                            break
+                    pacman.current_direction = current_direction
+                    pacman.x, pacman.y = new_x, new_y
                 else:
                     print("PACMAN STUCK")
+                    pacman.die()
 
     def handle_apple(self, pacman, map, apple):
         if apple == 1:
@@ -72,14 +80,24 @@ class PacmanStateMove(PacmanStateBaseMove):
 
 
 class Pacman:
-    def __init__(self, start_x, start_y, sprites) -> None:
-        self.x = start_x
-        self.y = start_y
+    def __init__(self, sprites, lives = 3) -> None:
+        self.max_lives = lives
         self.sprites = sprites
-        self.current_direction = 0
-        self.score = 0
 
+        self.restore()
+
+    def restore(self):
+        self.restore_without_lives()
+        self.lives = self.max_lives
+        self.score = 0
+        
+
+    def restore_without_lives(self):
+        self.x = 0
+        self.y = 0
+        self.current_direction = 0
         self.state: PacmanState = PacmanStateMove()
+        self.did_die = False
 
     def move(self, map):
         previous_x, previous_y = self.x, self.y
@@ -107,3 +125,10 @@ class Pacman:
 
     def get_score(self):
         return self.score
+    
+    def get_lives(self):
+        return self.lives
+
+    def die(self):
+        self.did_die = True
+        return self.lives

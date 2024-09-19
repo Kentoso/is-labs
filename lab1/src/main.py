@@ -28,7 +28,7 @@ def start_game():
 
     map = Map(wall_image, small_apple_image, big_apple_image, MAP_SIZE, TILE_SIZE)
 
-    ghost_sheet = pyglet.image.load('sprites/ghost.png')
+    ghost_sheet = pyglet.image.load('sprites/ghost_w.png')
     ghost_images = pyglet.image.ImageGrid(ghost_sheet, 1, 4)
     for image in ghost_images:
         texture_set_mag_filter_nearest(image.get_texture())
@@ -40,18 +40,26 @@ def start_game():
 
     NUMBER_OF_GHOSTS = 4
 
+    GHOST_COLORS = [
+        (255, 0, 0),
+        (255, 183, 255),
+        (0, 255, 255),
+        (255, 183, 81)
+    ]
+
     ghosts = []
 
     for i in range(NUMBER_OF_GHOSTS):
         ghost_sprites = []
 
-        for i in range(4):
-            ghost_image = ghost_images[i]
+        for j in range(4):
+            ghost_image = ghost_images[j]
             ghost_sprite = pyglet.sprite.Sprite(img=ghost_image)
+            ghost_sprite.color = GHOST_COLORS[i]
             ghost_sprite.width, ghost_sprite.height = TILE_SIZE, TILE_SIZE
             ghost_sprites.append(ghost_sprite)
 
-        ghost = Ghost(0, 0, ghost_sprites)
+        ghost = Ghost(ghost_sprites, i)
         ghosts.append(ghost)
 
 
@@ -62,7 +70,9 @@ def start_game():
         pacman_sprite.width, pacman_sprite.height = TILE_SIZE, TILE_SIZE
         pacman_sprites.append(pacman_sprite)
 
-    pacman = Pacman(0, 0, pacman_sprites)
+    LIVES = 10
+
+    pacman = Pacman(pacman_sprites, LIVES)
 
     game = Game(map, ghosts, pacman)
 
@@ -76,6 +86,13 @@ def start_game():
     def on_draw():
         window.clear()
         game.on_draw(TILE_SIZE)
+
+    @window.event
+    def on_key_press(symbol, modifiers):
+        if symbol == pyglet.window.key.ESCAPE:
+            window.close()
+        elif symbol == pyglet.window.key.R:
+            game.restart_game()
 
 
     def update(dt):

@@ -6,21 +6,45 @@ import pyglet
 
 class Game:
     def __init__(self, map: Map, ghosts: List[Ghost], pacman: Pacman):
+        self.is_updating = False
+        self.difficulty = 1
+
         self.map: Map = map
         self.pacman = pacman
         self.ghosts = ghosts
+
+        self.start_game()
+        
+    def reset_positions(self):
         ghost_room_positions = self.map.get_ghost_room_positions()
         for i, ghost in enumerate(self.ghosts):
             ghost.x, ghost.y = ghost_room_positions[i]
 
         self.pacman.x, self.pacman.y = self.map.get_random_empty_space()
 
-        self.ghosts_speed = 5
-
         self.map.ghosts_positions = [(ghost.x, ghost.y) for ghost in self.ghosts]
-        self.map.pacman_position = (pacman.x, pacman.y)
+        self.map.pacman_position = (self.pacman.x, self.pacman.y)
+
+    def start_game(self, ghost_speed = 5):
+        self.reset_positions()
+
+        self.ghosts_speed = ghost_speed
 
         self.frame = 0
+
+        self.is_updating = True
+        
+    def restart_game(self, ghost_speed = 5):
+        self.is_updating = False
+        self.map.restore_map()
+        self.pacman.restore()
+        for ghost in self.ghosts:
+            ghost.restore()
+        self.start_game(ghost_speed)
+
+    def next_level(self):
+        self.difficulty += 1
+        self.restart_game(self.ghosts_speed + 5)
 
     def get_free_neighbours(self, x, y):
         neighbours = self.map.get_free_neighbours(x, y)
@@ -42,17 +66,59 @@ class Game:
                                   font_size=16,
                                   x=0, y=self.map.size * tile_size,
                                   anchor_x='left', anchor_y='top')
+        
+        lives = pyglet.text.Label(f"Lives: {self.pacman.lives}",
+                                  font_name='Arial',
+                                  font_size=16,
+                                  x=self.map.size * tile_size, y=self.map.size * tile_size,
+                                  anchor_x='right', anchor_y='top')
+        
+        pacman_state_type = pyglet.text.Label(f"Pacman state: {self.pacman.state.__class__.__name__}",
+                                    font_name='Arial',
+                                    font_size=10,
+                                    x=0, y=self.map.size * tile_size - 18,
+                                    anchor_x='left', anchor_y='top')
+        
+        difficulty = pyglet.text.Label(f"Difficulty: {self.difficulty}",
+                                    font_name='Arial',
+                                    font_size=10,
+                                    x=0, y=self.map.size * tile_size - 36,
+                                    anchor_x='left', anchor_y='top')
+        
+
         score.draw()
+        lives.draw()
+        pacman_state_type.draw()
+        difficulty.draw()
 
     def update(self, dt):
+        if not self.is_updating:
+            return
+        
         if self.frame % (60 // self.ghosts_speed) == 0:
             for i, ghost in enumerate(self.ghosts):
                 ghost.move(self.map)
                 self.map.ghosts_positions[i] = (ghost.x, ghost.y)
+                if ghost.did_catch_pacman:
+                    self.pacman.die()
+                    ghost.did_catch_pacman = False
+                    return
 
         if self.frame % (60 // 12) == 0:
             self.pacman.move(self.map)
             self.map.pacman_position = (self.pacman.x, self.pacman.y)
+            if self.map.is_apple_map_empty():
+                self.next_level()
+                return
+            if self.pacman.did_die:
+                self.pacman.lives -= 1
+                if self.pacman.lives == 0:
+                    self.restart_game()
+                else:
+                    self.pacman.restore_without_lives()
+                    for ghost in self.ghosts:
+                        ghost.restore()
+                    self.reset_positions()
 
         
 

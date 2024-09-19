@@ -3,20 +3,39 @@ import pyglet
 from map_generator import MapGenerator
 import random 
 
+class MapImages:
+    def __init__(self, wall_image, small_apple_image, big_apple_image):
+        self.wall_image = wall_image
+        self.small_apple_image = small_apple_image
+        self.big_apple_image = big_apple_image
+
 class Map:
     def __init__(self, wall_image, small_apple_image, big_apple_image, size, tile_size):
+        self.map_images = MapImages(wall_image, small_apple_image, big_apple_image)
+
         self.ghosts_positions = []
         self.pacman_position = None
 
         self.map = np.zeros((size, size))
         self.apple_map = np.zeros((size, size))
 
+        self.tile_size = tile_size
         self.size = size
         self.generate()
 
+        self.map_copy = self.map.copy()
+        self.apple_map_copy = self.apple_map.copy()
+
+
+        self.init_sprites(tile_size, size)
+
+        
+    def init_sprites(self, tile_size, size):
         self.wall_sprites_batch = pyglet.graphics.Batch()
         self.small_apple_sprites_batch = pyglet.graphics.Batch()
         self.big_apple_sprites_batch = pyglet.graphics.Batch()
+        
+        wall_image, small_apple_image, big_apple_image = self.map_images.wall_image, self.map_images.small_apple_image, self.map_images.big_apple_image
 
         self.wall_sprites = []
         self.small_apple_sprites = []
@@ -48,6 +67,15 @@ class Map:
                     self.apple_sprites[x][y] = apple_sprite
 
 
+    def restore_map(self):
+        self.ghosts_positions = []
+        self.pacman_position = None
+
+        self.map = self.map_copy.copy()
+        self.apple_map = self.apple_map_copy.copy()
+
+        self.init_sprites(self.tile_size, self.size)
+
     def get_ghost_room_positions(self):
         center = self.size // 2 - 1
         offsets = [(0,0), (1,0), (0,1), (1,1)]
@@ -56,7 +84,7 @@ class Map:
     def get_random_empty_space(self):
         x = random.randint(0, self.size - 1)
         y = random.randint(0, self.size - 1)
-        while self.map[x, y] == 1:
+        while self.map[x, y] == 1 or (x, y) in self.ghosts_positions or (x, y) == self.pacman_position:
             x = random.randint(0, self.size - 1)
             y = random.randint(0, self.size - 1)
         return x, y
@@ -110,6 +138,9 @@ class Map:
         for ghost_x, ghost_y in self.ghosts_positions:
             if (ghost_x, ghost_y) in neighbours:
                 neighbours.remove((ghost_x, ghost_y))
+
+        if self.pacman_position in neighbours:
+            neighbours.remove(self.pacman_position)
         
         return neighbours
     
@@ -143,6 +174,12 @@ class Map:
             cost += 1 / (abs(ghost_position[0] - position[0]) + abs(ghost_position[1] - position[1]) + 1)
         
         return cost
+
+    def is_apple_map_empty(self):
+        return sum(sum(self.apple_map)) == 0
+    
+    def is_position_near_or_inside_pacman(self, position):
+        return abs(self.pacman_position[0] - position[0]) + abs(self.pacman_position[1] - position[1]) <= 1
 
     def bfs(self, start, finish):
         queue = [start]
