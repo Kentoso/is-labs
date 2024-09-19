@@ -67,8 +67,8 @@ class PacmanStateMove(PacmanStateBaseMove):
 
     def move(self, pacman, map):
         current_x, current_y = pacman.x, pacman.y
-        apple = map.get_nearest_apple((current_x, current_y))
-
+        apple = map.get_best_apple((current_x, current_y), map.get_pacman_cost)
+        pacman.current_target = apple
         if apple is not None:
             path = map.dijkstra((current_x, current_y), apple, map.get_pacman_cost)
             if len(path) > 1:
@@ -98,6 +98,7 @@ class Pacman:
         self.current_direction = 0
         self.state: PacmanState = PacmanStateMove()
         self.did_die = False
+        self.current_target = None
 
     def move(self, map):
         previous_x, previous_y = self.x, self.y

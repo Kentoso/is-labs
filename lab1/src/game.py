@@ -3,6 +3,7 @@ from typing import List
 from ghost import Ghost
 from pacman import Pacman
 import pyglet 
+import math 
 
 class Game:
     def __init__(self, map: Map, ghosts: List[Ghost], pacman: Pacman):
@@ -12,6 +13,8 @@ class Game:
         self.map: Map = map
         self.pacman = pacman
         self.ghosts = ghosts
+
+        self.show_pacman_costs = False
 
         self.start_game()
         
@@ -60,6 +63,20 @@ class Game:
         for ghost in self.ghosts:
             ghost.on_draw(tile_size)
         self.pacman.on_draw(tile_size)
+
+        if self.show_pacman_costs:
+            for x, row in enumerate(self.map.map):
+                for y, tile in enumerate(row):
+                    if tile == 0:
+                        pacman_cost = round(self.map.get_pacman_cost((x, y)), 2)
+                        pyglet.text.Label(f"{pacman_cost}",
+                                        font_name='Arial',
+                                        font_size=8,
+                                        x=x * tile_size, y=y * tile_size).draw()
+
+        if self.pacman.current_target is not None:
+            x, y = self.pacman.current_target
+            pyglet.shapes.Circle(x * tile_size + tile_size // 2, y * tile_size + tile_size // 2, 5, color=(0, 255, 0)).draw()
 
         score = pyglet.text.Label(f"Score: {self.pacman.score}",
                                   font_name='Arial',

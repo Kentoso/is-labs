@@ -93,9 +93,16 @@ def start_game():
             window.close()
         elif symbol == pyglet.window.key.R:
             game.restart_game()
+        elif symbol == pyglet.window.key.SPACE:
+            game.is_updating = not game.is_updating
+        elif symbol == pyglet.window.key.P:
+            game.show_pacman_costs = not game.show_pacman_costs
 
 
     def update(dt):
+        if not game.is_updating:
+            return
+        
         game.frame += 1
         game.update(dt)
 

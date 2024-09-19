@@ -149,30 +149,80 @@ class Map:
         self.small_apple_sprites_batch.draw()
         self.big_apple_sprites_batch.draw()
 
-    def get_random_apple(self):
-        big_apples = np.argwhere(self.apple_map == 2)
-        if len(big_apples) > 0:
-            return tuple(big_apples[0].astype(int))
+    def get_bfs_apples(self, position):
+        depth = 5
+        queue = [position]
+        visited = np.zeros((self.size, self.size))
+        visited[position] = 1
+        apples = []
+        for i in range(depth):
+            new_queue = []
+            for current in queue:
+                for neighbour in self.get_free_neighbours(*current):
+                    if visited[neighbour] == 0:
+                        visited[neighbour] = 1
+                        new_queue.append(neighbour)
+                        if self.apple_map[neighbour] == 1:
+                            apples.append(neighbour)
+                        elif self.apple_map[neighbour] == 2:
+                            apples.append(neighbour)
+            queue = new_queue
         
-        small_apples = np.argwhere(self.apple_map == 1)
-        if len(small_apples) > 0:
-            return tuple(small_apples[0].astype(int))
+        return apples
+
+    def get_ghosts_nearby(self, position, radius):
+        ghosts = []
+        for ghost_position in self.ghosts_positions:
+            if abs(ghost_position[0] - position[0]) + abs(ghost_position[1] - position[1]) <= radius:
+                ghosts.append(ghost_position)
+        return ghosts
+
+    def get_best_apple(self, position, cost_function):
+        los_apples = self.get_bfs_apples(position)
+        if len(los_apples) > 0:
+            best_apple = tuple(min(los_apples, key=lambda x: abs(x[0] - position[0]) + abs(x[1] - position[1]) + cost_function(x) * 2))
+            return best_apple
         
-        return None
-    
-    def get_nearest_apple(self, position):
         apples = np.argwhere(self.apple_map == 1)
         big_apples = np.argwhere(self.apple_map == 2)
         merged_apples = np.concatenate((apples, big_apples), axis=0)
-        if len(apples) == 0:
-            return None
-        return tuple(min(merged_apples, key=lambda x: abs(x[0] - position[0]) + abs(x[1] - position[1])))
+
+        return tuple(min(merged_apples, key=lambda x: cost_function(x)))
+
 
     def get_pacman_cost(self, position):
         cost = 0
+
+        # if wall then inf
+        if self.map[position[0], position[1]] == 1:
+            return 100000000
+
+        # how close is the position to ghosts
         for ghost_position in self.ghosts_positions:
-            cost += 1 / (abs(ghost_position[0] - position[0]) + abs(ghost_position[1] - position[1]) + 1)
+            cost += 2 / (abs(ghost_position[0] - position[0]) + abs(ghost_position[1] - position[1]) + 1)
+
+        nearby_ghosts = self.get_ghosts_nearby(position, 2)
+        cost += 2 * len(nearby_ghosts)
+            
+
+        # how open is the position
+        free_neighbours = self.get_free_neighbours(*position)
+        cost += 0.5 / (len(free_neighbours) + 1)
         
+        apples = self.get_bfs_apples(position)
+
+        # how many apples
+        cost += 1 / (len(apples) + 1)
+
+        contains_apple = self.apple_map[position[0], position[1]]
+        # if position contains an apple
+        if contains_apple == 1:
+            cost /= 1.25
+        elif contains_apple == 2:
+            cost /= 1.5
+
+        
+
         return cost
 
     def is_apple_map_empty(self):
@@ -207,6 +257,8 @@ class Map:
 
     def dijkstra(self, start, finish, cost_function=None):
         distances = np.ones((self.size, self.size)) * np.inf
+        # distances_history = np.ones((self.size, self.size)) * np.inf
+
         distances[start] = 0
 
         visited = np.zeros((self.size, self.size))
@@ -237,6 +289,7 @@ class Map:
                         distances[neighbour] = new_distance
                         parent[neighbour[0], neighbour[1]] = current
             
+            # distances_history[current] = distances[current]
             distances[current] = np.inf
 
     
