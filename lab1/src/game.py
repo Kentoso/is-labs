@@ -102,6 +102,14 @@ class Game:
                                     x=0, y=self.map.size * tile_size - 36,
                                     anchor_x='left', anchor_y='top')
         
+        for ghost in self.ghosts:
+            ghost_state = pyglet.text.Label(f"Ghost {ghost.n} state: {ghost.state.__class__.__name__}",
+                                    font_name='Arial',
+                                    font_size=10,
+                                    x=self.map.size * tile_size, y=self.map.size * tile_size - 18 * (ghost.n + 1),
+                                    anchor_x='right', anchor_y='top')
+            ghost_state.draw()
+        
 
         score.draw()
         lives.draw()

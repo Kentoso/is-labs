@@ -11,36 +11,38 @@ class GhostState(ABC):
 class GhostStateBaseMove(GhostState):
     def __init__(self) -> None:
         self.prev_position = None
+        self.switch_timer = 10
 
     def move(self, ghost, map):
-        current_direction = ghost.current_direction
-        direction_map = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-        free_neighbours = map.get_free_neighbours(ghost.x, ghost.y)
-        if self.prev_position == (ghost.x, ghost.y):
-            if direction_map[current_direction] in free_neighbours:
-                ghost.x += direction_map[current_direction][0]
-                ghost.y += direction_map[current_direction][1]
-            else:
-                if len(free_neighbours) > 0:
-                    new_x, new_y = random.choice(free_neighbours)
-                    current_direction = -1
-                    for i, direction in enumerate(direction_map):
-                        if direction + (ghost.x, ghost.y) == (new_x, new_y):
-                            current_direction = i
-                            break
-                    ghost.current_direction = current_direction
-                    ghost.x, ghost.y = new_x, new_y
-                else:
-                    print("GHOST STUCK")
+        self.switch_timer -= 1
+        if self.switch_timer < 0:
+            ghost.randomize_state()
+
+        # current_direction = ghost.current_direction
+        # direction_map = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        # free_neighbours = map.get_free_neighbours(ghost.x, ghost.y)
+        # if self.prev_position == (ghost.x, ghost.y):
+        #     if direction_map[current_direction] in free_neighbours:
+        #         ghost.x += direction_map[current_direction][0]
+        #         ghost.y += direction_map[current_direction][1]
+        #     else:
+        #         if len(free_neighbours) > 0:
+        #             new_x, new_y = random.choice(free_neighbours)
+        #             current_direction = -1
+        #             for i, direction in enumerate(direction_map):
+        #                 if direction + (ghost.x, ghost.y) == (new_x, new_y):
+        #                     current_direction = i
+        #                     break
+        #             ghost.current_direction = current_direction
+        #             ghost.x, ghost.y = new_x, new_y
+        #         else:
+        #             print("GHOST STUCK")
         
         if map.is_position_near_or_inside_pacman(self.prev_position):
             ghost.caught_pacman()
             
 
 class GhostStateWandering(GhostStateBaseMove):
-    def __init__(self) -> None:
-        self.prev_position = None
-
     def move(self, ghost, map):
         current_x, current_y = ghost.x, ghost.y
         neighbours = map.get_free_neighbours(current_x, current_y)
@@ -57,6 +59,19 @@ class GhostStateWandering(GhostStateBaseMove):
 
         super().move(ghost, map)
 
+class GhostStateChasing(GhostStateBaseMove):
+    def move(self, ghost, map):
+        current_x, current_y = ghost.x, ghost.y
+        pacman_position = map.pacman_position
+        path = map.bfs((current_x, current_y), pacman_position, map.get_free_neighbours_for_ghost)
+        
+        if len(path) > 1:
+            ghost.x, ghost.y = path[1]
+
+        self.prev_position = (current_x, current_y)
+
+        super().move(ghost, map)
+
 class Ghost:
     def __init__(self, sprites, n) -> None:
         self.sprites = sprites
@@ -69,6 +84,10 @@ class Ghost:
         self.state = GhostStateWandering()
         self.current_direction = 0
         self.did_catch_pacman = False
+
+    def randomize_state(self):
+        state = random.choice([GhostStateWandering(), GhostStateChasing()])
+        self.state = state
 
     def move(self, map):
         previous_x, previous_y = self.x, self.y

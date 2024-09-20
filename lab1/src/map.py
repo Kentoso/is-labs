@@ -144,6 +144,19 @@ class Map:
         
         return neighbours
     
+    def get_free_neighbours_for_ghost(self, x, y):
+        neighbours = []
+        if x > 0 and self.map[x-1, y] == 0:
+            neighbours.append((x-1, y))
+        if x < self.size - 1 and self.map[x+1, y] == 0:
+            neighbours.append((x+1, y))
+        if y > 0 and self.map[x, y-1] == 0:
+            neighbours.append((x, y-1))
+        if y < self.size - 1 and self.map[x, y+1] == 0:
+            neighbours.append((x, y+1))
+        
+        return neighbours
+    
     def on_draw(self, tile_size):
         self.wall_sprites_batch.draw()
         self.small_apple_sprites_batch.draw()
@@ -231,7 +244,7 @@ class Map:
     def is_position_near_or_inside_pacman(self, position):
         return abs(self.pacman_position[0] - position[0]) + abs(self.pacman_position[1] - position[1]) <= 1
 
-    def bfs(self, start, finish):
+    def bfs(self, start, finish, neighbours_function=None):
         queue = [start]
         visited = np.zeros((self.size, self.size))
         visited[start] = 1
@@ -247,7 +260,7 @@ class Map:
                 path.append(start)
                 return path[::-1]
 
-            for neighbour in self.get_free_neighbours(*current):
+            for neighbour in neighbours_function(*current):
                 if visited[neighbour] == 0:
                     visited[neighbour] = 1
                     parent[neighbour[0], neighbour[1]] = current
