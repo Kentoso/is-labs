@@ -28,26 +28,25 @@ class Game:
         self.map.ghosts_positions = [(ghost.x, ghost.y) for ghost in self.ghosts]
         self.map.pacman_position = (self.pacman.x, self.pacman.y)
 
-    def start_game(self, ghost_speed = 5):
+    def start_game(self):
         self.reset_positions()
-
-        self.ghosts_speed = ghost_speed
 
         self.frame = 0
 
         self.is_updating = True
         
-    def restart_game(self, ghost_speed = 5):
+    def restart_game(self):
         self.is_updating = False
         self.map.restore_map()
         self.pacman.restore()
         for ghost in self.ghosts:
+            ghost.difficulty = self.difficulty
             ghost.restore()
-        self.start_game(ghost_speed)
+        self.start_game()
 
     def next_level(self):
         self.difficulty += 1
-        self.restart_game(self.ghosts_speed + 5)
+        self.restart_game()
 
     def get_free_neighbours(self, x, y):
         neighbours = self.map.get_free_neighbours(x, y)
@@ -73,6 +72,10 @@ class Game:
                                         font_name='Arial',
                                         font_size=8,
                                         x=x * tile_size, y=y * tile_size).draw()
+            if self.pacman.path is not None:
+                for p in self.pacman.path:
+                    x, y = p
+                    pyglet.shapes.Circle(x * tile_size + tile_size // 2, y * tile_size + tile_size // 2, 5, color=(255, 0, 0)).draw()
 
         if self.pacman.current_target is not None:
             x, y = self.pacman.current_target
@@ -120,7 +123,7 @@ class Game:
         if not self.is_updating:
             return
         
-        if self.frame % (60 // self.ghosts_speed) == 0:
+        if self.frame % (60 // (self.difficulty * 2)) == 0:
             for i, ghost in enumerate(self.ghosts):
                 ghost.move(self.map)
                 self.map.ghosts_positions[i] = (ghost.x, ghost.y)

@@ -200,7 +200,9 @@ class Map:
         big_apples = np.argwhere(self.apple_map == 2)
         merged_apples = np.concatenate((apples, big_apples), axis=0)
 
-        return tuple(min(merged_apples, key=lambda x: cost_function(x)))
+        normalized_distance = lambda x: (abs(x[0] - position[0]) + abs(x[1] - position[1])) / self.size
+
+        return tuple(min(merged_apples, key=lambda x: (cost_function(x) * normalized_distance(x))))
 
 
     def get_pacman_cost(self, position):
@@ -215,12 +217,13 @@ class Map:
             cost += 2 / (abs(ghost_position[0] - position[0]) + abs(ghost_position[1] - position[1]) + 1)
 
         nearby_ghosts = self.get_ghosts_nearby(position, 2)
-        cost += 2 * len(nearby_ghosts)
+        cost += 10 * len(nearby_ghosts)
             
 
-        # how open is the position
+        # how open is the position and ghost is near
+        is_dangerous_position = len(self.get_ghosts_nearby(position, 2)) > 0 
         free_neighbours = self.get_free_neighbours(*position)
-        cost += 0.5 / (len(free_neighbours) + 1)
+        cost += 0.5 / (len(free_neighbours) + 1) if is_dangerous_position else 0
         
         apples = self.get_bfs_apples(position)
 
@@ -269,41 +272,44 @@ class Map:
         return []
 
     def dijkstra(self, start, finish, cost_function=None):
-        distances = np.ones((self.size, self.size)) * np.inf
-        # distances_history = np.ones((self.size, self.size)) * np.inf
+        open_set = {start}
+        closed_set = set()
+        came_from = {}
+        g_score = {start: 0}
 
-        distances[start] = 0
+        while open_set:
+            current = min(open_set, key=lambda x: g_score[x])
 
-        visited = np.zeros((self.size, self.size))
-        parent = np.zeros((self.size, self.size, 2))
-
-        while True:
-            current = np.unravel_index(np.argmin(distances), distances.shape)
             if current == finish:
                 path = []
                 while current != start:
                     path.append(current)
-                    current = tuple(parent[current[0], current[1]].astype(int))
+                    current = came_from[current]
                 path.append(start)
                 return path[::-1]
 
-            visited[current] = 1
-            neighbours = self.get_free_neighbours(*current)
-            if len(neighbours) == 0:
-                return []
+            open_set.remove(current)
+            closed_set.add(current)
 
-            for neighbour in neighbours:
-                if visited[neighbour] == 0:
-                    if cost_function:
-                        new_distance = distances[current] + 1 + cost_function(neighbour)
-                    else:
-                        new_distance = distances[current] + 1
-                    if new_distance < distances[neighbour]:
-                        distances[neighbour] = new_distance
-                        parent[neighbour[0], neighbour[1]] = current
-            
-            # distances_history[current] = distances[current]
-            distances[current] = np.inf
+            for neighbour in self.get_free_neighbours(*current):
+                if neighbour in closed_set:
+                    continue
+
+                if cost_function:
+                    tentative_g = g_score[current] + 1 + cost_function(neighbour)
+                else:
+                    tentative_g = g_score[current] + 1
+
+                if neighbour not in g_score or tentative_g < g_score[neighbour]:
+                    came_from[neighbour] = current
+                    g_score[neighbour] = tentative_g
+                    if neighbour not in open_set:
+                        open_set.add(neighbour)
+
+        print("No path found")
+        print(f"Start: {start}, Finish: {finish}")
+        print(f"Explored {len(closed_set)} nodes")
+        return []
 
     
     def a_star(self, start, finish, cost_function=None):

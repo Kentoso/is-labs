@@ -13,52 +13,36 @@ class PacmanState(ABC):
 class PacmanStateBaseMove(PacmanState):
     def __init__(self) -> None:
         self.prev_position = None
+        self.did_move = False
 
     def move(self, pacman, map):
         current_direction = pacman.current_direction
         direction_map = [(0, 1), (1, 0), (0, -1), (-1, 0)]
         free_neighbours = map.get_free_neighbours(pacman.x, pacman.y)
-        if self.prev_position == (pacman.x, pacman.y):
-            if direction_map[current_direction] in free_neighbours:
-                pacman.x += direction_map[current_direction][0]
-                pacman.y += direction_map[current_direction][1]
+        if not self.did_move:
+            self.did_move = False
+            if len(free_neighbours) > 0:
+                neighbour_with_best_score = min(free_neighbours, key=lambda x: map.get_pacman_cost(x))
+                new_x, new_y = neighbour_with_best_score
+                current_direction = -1
+                for i, direction in enumerate(direction_map):
+                    if direction + (pacman.x, pacman.y) == (new_x, new_y):
+                        current_direction = i
+                        break
+                pacman.current_direction = current_direction
+                self.prev_position = (pacman.x, pacman.y)
+                pacman.x, pacman.y = new_x, new_y
             else:
-                if len(free_neighbours) > 0:
-                    new_x, new_y = random.choice(free_neighbours)
-                    current_direction = -1
-                    for i, direction in enumerate(direction_map):
-                        if direction + (pacman.x, pacman.y) == (new_x, new_y):
-                            current_direction = i
-                            break
-                    pacman.current_direction = current_direction
-                    pacman.x, pacman.y = new_x, new_y
-                else:
-                    print("PACMAN STUCK")
-                    pacman.die()
+                print("PACMAN STUCK")
+                pacman.die()
+        
+        map.pacman_position = (pacman.x, pacman.y)
 
     def handle_apple(self, pacman, map, apple):
         if apple == 1:
             pacman.score += 10
         elif apple == 2:
             pacman.score += 50
-            # pacman.state = PacmanStateBigApple()
-
-class PacmanStateBigApple(PacmanState):
-    def move(self, pacman, map):
-        current_x, current_y = pacman.x, pacman.y
-        apple = map.get_random_apple()
-
-        if apple is not None:
-            path = map.bfs((current_x, current_y), apple)
-            if len(path) > 1:
-                pacman.x, pacman.y = path[1]
-
-        
-        self.prev_position = (current_x, current_y)
-
-    def handle_apple(self, pacman, map, apple):
-        if apple == 1:
-            pacman.score += 10
                     
 
 class PacmanStateMove(PacmanStateBaseMove):
@@ -72,7 +56,12 @@ class PacmanStateMove(PacmanStateBaseMove):
         if apple is not None:
             path = map.dijkstra((current_x, current_y), apple, map.get_pacman_cost)
             if len(path) > 1:
+                pacman.path = path[1:]
                 pacman.x, pacman.y = path[1]
+                self.did_move = True
+            else:
+                pacman.path = None
+                self.did_move = False
 
         self.prev_position = (current_x, current_y)
         super().move(pacman, map)
@@ -99,6 +88,7 @@ class Pacman:
         self.state: PacmanState = PacmanStateMove()
         self.did_die = False
         self.current_target = None
+        self.path = None
 
     def move(self, map):
         previous_x, previous_y = self.x, self.y
