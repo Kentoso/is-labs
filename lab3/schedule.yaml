@@ -1,8 +1,50 @@
+time_slots:
+  - day: "1. Monday"
+    time: 1
+  - day: "1. Monday"
+    time: 2
+  - day: "1. Monday"
+    time: 3
+  - day: "1. Monday"
+    time: 4
+  - day: "2. Tuesday"
+    time: 1
+  - day: "2. Tuesday"
+    time: 2
+  - day: "2. Tuesday"
+    time: 3
+  - day: "2. Tuesday"
+    time: 4
+  - day: "3. Wednesday"
+    time: 1
+  - day: "3. Wednesday"
+    time: 2
+  - day: "3. Wednesday"
+    time: 3
+  - day: "3. Wednesday"
+    time: 4
+  - day: "4. Thursday"
+    time: 1
+  - day: "4. Thursday"
+    time: 2
+  - day: "4. Thursday"
+    time: 3
+  - day: "4. Thursday"
+    time: 4
+  - day: "5. Friday"
+    time: 1
+  - day: "5. Friday"
+    time: 2
+  - day: "5. Friday"
+    time: 3
+  - day: "5. Friday"
+    time: 4
+
 subjects:
   - name: Linear Algebra
-    hours: 2
+    hours: 1
   - name: Programming
-    hours: 3
+    hours: 1
   - name: Discrete Math
     hours: 1
 groups:
