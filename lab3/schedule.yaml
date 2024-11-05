@@ -1,0 +1,47 @@
+subjects:
+  - name: Linear Algebra
+    hours: 2
+  - name: Programming
+    hours: 3
+  - name: Discrete Math
+    hours: 1
+groups:
+  - name: K-1
+    capacity: 30
+    subject_names:
+      - Discrete Math
+      - Linear Algebra
+      - Programming
+  - name: K-2
+    capacity: 20
+    subject_names:
+      - Programming
+      - Linear Algebra
+  - name: K-3
+    capacity: 10
+    subject_names:
+      - Linear Algebra
+      - Discrete Math
+lecturers:
+  - name: Lecturer 1
+    can_teach_subjects_names:
+      - Linear Algebra
+      - Programming
+      - Discrete Math
+  - name: Lecturer 2
+    can_teach_subjects_names:
+      - Linear Algebra
+  - name: Lecturer 3
+    can_teach_subjects_names:
+      - Programming
+halls:
+  - name: 1
+    capacity: 5
+  - name: 2
+    capacity: 12
+  - name: 3
+    capacity: 15
+  - name: 4
+    capacity: 45
+  - name: 5
+    capacity: 30
