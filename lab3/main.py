@@ -11,15 +11,13 @@ if __name__ == "__main__":
     schedule_manager = ScheduleManager()
     schedule_manager.from_yaml("schedule.yaml")
 
-    schedule = schedule_manager.create_empty_schedule()
-    print(schedule.is_valid())
+    best_schedule = schedule_manager.genetic(100)
 
-    random_schedule = schedule_manager.init_random_schedule()
+    print(best_schedule)
+    print(best_schedule.is_valid())
 
-    print(random_schedule)
-    print(random_schedule.is_valid())
-    for k, v in random_schedule.to_time_slot_oriented_view().items():
-        print(k, v)
-        print()
-
-    print(schedule_manager.get_schedule_fitness(random_schedule))
+    for k, group_schedule in best_schedule.to_groups_schedules().items():
+        print("Group: ", k)
+        for g in group_schedule:
+            print("------")
+            print(g)

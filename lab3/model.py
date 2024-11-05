@@ -32,7 +32,7 @@ class Subject:
         )
 
     def __str__(self) -> str:
-        return f"Subject: {self.name}"
+        return f"{self.name}"
 
     def __hash__(self) -> int:
         return hash((self.name, self.hours))
@@ -53,7 +53,7 @@ class Group:
         )
 
     def __str__(self) -> str:
-        return f"Group: {self.name}"
+        return f"{self.name}"
 
     def __hash__(self) -> int:
         return hash((self.name, self.capacity))
@@ -69,7 +69,7 @@ class Lecturer:
         return value is not None and self.name == value.name
 
     def __str__(self) -> str:
-        return f"Lecturer: {self.name}"
+        return f"{self.name}"
 
     def __hash__(self) -> int:
         return hash(self.name)
@@ -128,6 +128,9 @@ class Slot:
         return hash(
             (self.group, self.subject, self.lecturer, self.hall, self.time_slot)
         )
+
+    def to_table_format(self):
+        return f"{self.time_slot.day}\n{self.time_slot.time}\n{self.group.name}\n{self.subject.name}\n{self.lecturer.name}\n{self.hall.name}"
 
 
 class Schedule:
@@ -208,7 +211,7 @@ class Schedule:
         other_slots = other.grid
         for i in range(len(self.grid)):
             if random.random() > 0.5:
-                child.grid[i] = other_slots[i]
+                child.grid[i] = copy.copy(other_slots[i])
 
         return child
 
@@ -230,9 +233,29 @@ class Schedule:
         }
         return time_slots
 
+    def to_groups_schedules(self):
+        groups = {}
+        for slot in self.grid:
+            if slot.group is None:
+                continue
+            if slot.group.name not in groups:
+                groups[slot.group.name] = []
+            groups[slot.group.name].append(slot)
+
+        group_tables = {}
+        for k, v in groups.items():
+            sorted_by_time = sorted(
+                v, key=lambda x: (x.time_slot.day, x.time_slot.time)
+            )
+            group_tables[k] = [slot.to_table_format() for slot in sorted_by_time]
+
+        return group_tables
+
     def _get_group_windows_cost(self, time_slot_scores):
         time_slots_for_groups = {}
         for slot in self.grid:
+            if slot.group is None:
+                continue
             if slot.group.name not in time_slots_for_groups:
                 time_slots_for_groups[slot.group.name] = []
             time_slots_for_groups[slot.group.name].append(slot.time_slot)
@@ -244,7 +267,6 @@ class Schedule:
                 cost += (
                     time_slot_scores[sorted_time_slots[i + 1]]
                     - time_slot_scores[sorted_time_slots[i]]
-                    - 1
                 )
 
         return cost
@@ -252,6 +274,8 @@ class Schedule:
     def _get_lecturer_windows_cost(self, time_slot_scores):
         time_slots_for_lecturers = {}
         for slot in self.grid:
+            if slot.lecturer is None:
+                continue
             if slot.lecturer.name not in time_slots_for_lecturers:
                 time_slots_for_lecturers[slot.lecturer.name] = []
             time_slots_for_lecturers[slot.lecturer.name].append(slot.time_slot)
@@ -263,7 +287,6 @@ class Schedule:
                 cost += (
                     time_slot_scores[sorted_time_slots[i + 1]]
                     - time_slot_scores[sorted_time_slots[i]]
-                    - 1
                 )
 
         return cost
@@ -271,6 +294,8 @@ class Schedule:
     def _get_time_slot_earliness_cost(self, time_slot_scores):
         time_slots = {}
         for slot in self.grid:
+            if slot.time_slot is None:
+                continue
             if slot.time_slot not in time_slots:
                 time_slots[slot.time_slot] = 0
             time_slots[slot.time_slot] += 1
@@ -434,23 +459,116 @@ class ScheduleManager:
             schedule, _ = self.mutate_schedule(schedule)
             i += 1
 
+        # fill None values
+        for slot in schedule.grid:
+            if slot.hall is None:
+                available_halls = self._get_available_halls_for_time_slot_and_group(
+                    schedule, slot.time_slot, slot.group
+                )
+                if len(available_halls) == 0:
+                    return self.init_random_schedule()
+                slot.hall = random.choice(available_halls)
+
+            if slot.lecturer is None:
+                available_lecturers = (
+                    self._get_available_lecturers_for_time_slot_and_subject(
+                        schedule, slot.time_slot, slot.subject
+                    )
+                )
+                if len(available_lecturers) == 0:
+                    return self.init_random_schedule()
+                slot.lecturer = random.choice(available_lecturers)
+
+            if slot.time_slot is None:
+                avaliable_time_slots = (
+                    self._get_available_time_slots_for_hall_and_lecturer_and_group(
+                        schedule, slot.hall, slot.lecturer, slot.group
+                    )
+                )
+                if len(avaliable_time_slots) == 0:
+                    return self.init_random_schedule()
+                slot.time_slot = random.choice(avaliable_time_slots)
+
         return schedule
 
     def get_schedule_fitness(self, schedule: Schedule):
         cost = 0
-        cost += self.group_windows_weight * schedule._get_group_windows_cost(
-            self.time_slots_scores
+
+        group_windows_cost = (
+            self.group_windows_weight
+            * schedule._get_group_windows_cost(self.time_slots_scores)
         )
-        cost += self.lecturer_windows_weight * schedule._get_lecturer_windows_cost(
-            self.time_slots_scores
+
+        lecturer_windows_cost = (
+            self.lecturer_windows_weight
+            * schedule._get_lecturer_windows_cost(self.time_slots_scores)
         )
-        cost += (
+
+        time_slot_earliness_cost = (
             self.time_slot_earliness_weight
             * schedule._get_time_slot_earliness_cost(self.time_slots_scores)
         )
-        cost += (
+
+        group_capacity_hall_capacity_fill_cost = (
             self.group_capacity_hall_capacity_fill_weight
             * schedule._get_group_capacity_hall_capacity_fill_cost()
         )
 
+        cost += (
+            group_windows_cost
+            + lecturer_windows_cost
+            + time_slot_earliness_cost
+            + group_capacity_hall_capacity_fill_cost
+        )
+
+        # print(
+        #     group_windows_cost,
+        #     lecturer_windows_cost,
+        #     time_slot_earliness_cost,
+        #     group_capacity_hall_capacity_fill_cost,
+        # )
+
         return 1 / (1 + cost)
+
+    def tournament_selection(self, population, tournament_size) -> Schedule:
+        selected = []
+        for _ in range(tournament_size):
+            selected.append(random.choice(population))
+
+        return max(selected, key=lambda x: self.get_schedule_fitness(x))
+
+    def genetic(self, population_size: int) -> Schedule:
+        current_population = []
+        for _ in range(population_size):
+            current_population.append(self.init_random_schedule())
+
+        number_of_same_best_fitness = 0
+        curr_best_fitness = 0
+        number_of_generations = 100
+        while number_of_generations > 0 and number_of_same_best_fitness < 10:
+            new_population = []
+            while len(new_population) < population_size:
+                parent1 = self.tournament_selection(current_population, 10)
+                parent2 = self.tournament_selection(current_population, 10)
+                child = parent1.crossover(parent2)
+                if random.random() < 0.5:
+                    child, _ = self.mutate_schedule(child)
+                if child.is_valid()[0]:
+                    new_population.append(child)
+
+            current_population = new_population
+            best_fitness = self.get_schedule_fitness(
+                max(current_population, key=lambda x: self.get_schedule_fitness(x))
+            )
+            if best_fitness > curr_best_fitness:
+                curr_best_fitness = best_fitness
+                print(curr_best_fitness)
+                number_of_same_best_fitness = 0
+            elif best_fitness == curr_best_fitness:
+                number_of_same_best_fitness += 1
+
+        best_schedule = max(
+            current_population, key=lambda x: self.get_schedule_fitness(x)
+        )
+
+        return best_schedule
