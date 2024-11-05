@@ -230,6 +230,67 @@ class Schedule:
         }
         return time_slots
 
+    def _get_group_windows_cost(self, time_slot_scores):
+        time_slots_for_groups = {}
+        for slot in self.grid:
+            if slot.group.name not in time_slots_for_groups:
+                time_slots_for_groups[slot.group.name] = []
+            time_slots_for_groups[slot.group.name].append(slot.time_slot)
+
+        for _, v in time_slots_for_groups.items():
+            sorted_time_slots = sorted(v, key=lambda x: (x.day, x.time))
+            cost = 0
+            for i in range(len(sorted_time_slots) - 1):
+                cost += (
+                    time_slot_scores[sorted_time_slots[i + 1]]
+                    - time_slot_scores[sorted_time_slots[i]]
+                    - 1
+                )
+
+        return cost
+
+    def _get_lecturer_windows_cost(self, time_slot_scores):
+        time_slots_for_lecturers = {}
+        for slot in self.grid:
+            if slot.lecturer.name not in time_slots_for_lecturers:
+                time_slots_for_lecturers[slot.lecturer.name] = []
+            time_slots_for_lecturers[slot.lecturer.name].append(slot.time_slot)
+
+        for _, v in time_slots_for_lecturers.items():
+            sorted_time_slots = sorted(v, key=lambda x: (x.day, x.time))
+            cost = 0
+            for i in range(len(sorted_time_slots) - 1):
+                cost += (
+                    time_slot_scores[sorted_time_slots[i + 1]]
+                    - time_slot_scores[sorted_time_slots[i]]
+                    - 1
+                )
+
+        return cost
+
+    def _get_time_slot_earliness_cost(self, time_slot_scores):
+        time_slots = {}
+        for slot in self.grid:
+            if slot.time_slot not in time_slots:
+                time_slots[slot.time_slot] = 0
+            time_slots[slot.time_slot] += 1
+
+        cost = 0
+        for k, v in time_slots.items():
+            cost += time_slot_scores[k] * v
+
+        return cost
+
+    def _get_group_capacity_hall_capacity_fill_cost(self):
+        cost = 0
+
+        for slot in self.grid:
+            if slot.hall is None or slot.group is None:
+                continue
+            cost += (slot.hall.capacity - slot.group.capacity) / slot.hall.capacity
+
+        return cost
+
 
 class ScheduleManager:
     def __init__(self):
@@ -238,6 +299,12 @@ class ScheduleManager:
         self.groups: list[Group] = None
         self.lecturers: list[Lecturer] = None
         self.halls: list[Hall] = None
+        self.time_slots_scores: dict[str, int] = {}
+
+        self.group_windows_weight = 1
+        self.lecturer_windows_weight = 1
+        self.time_slot_earliness_weight = 0.5
+        self.group_capacity_hall_capacity_fill_weight = 0.5
 
     def from_yaml(self, file_path: str) -> None:
         with open(file_path, "r") as file:
@@ -249,6 +316,9 @@ class ScheduleManager:
             self.groups = [Group(**group) for group in data["groups"]]
             self.lecturers = [Lecturer(**lecturer) for lecturer in data["lecturers"]]
             self.halls = [Hall(**hall) for hall in data["halls"]]
+
+        for i, time_slot in enumerate(self.time_slots):
+            self.time_slots_scores[time_slot] = i
 
     def create_empty_schedule(self):
         schedule = Schedule()
@@ -365,3 +435,22 @@ class ScheduleManager:
             i += 1
 
         return schedule
+
+    def get_schedule_fitness(self, schedule: Schedule):
+        cost = 0
+        cost += self.group_windows_weight * schedule._get_group_windows_cost(
+            self.time_slots_scores
+        )
+        cost += self.lecturer_windows_weight * schedule._get_lecturer_windows_cost(
+            self.time_slots_scores
+        )
+        cost += (
+            self.time_slot_earliness_weight
+            * schedule._get_time_slot_earliness_cost(self.time_slots_scores)
+        )
+        cost += (
+            self.group_capacity_hall_capacity_fill_weight
+            * schedule._get_group_capacity_hall_capacity_fill_cost()
+        )
+
+        return 1 / (1 + cost)

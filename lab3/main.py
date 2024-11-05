@@ -21,3 +21,5 @@ if __name__ == "__main__":
     for k, v in random_schedule.to_time_slot_oriented_view().items():
         print(k, v)
         print()
+
+    print(schedule_manager.get_schedule_fitness(random_schedule))
