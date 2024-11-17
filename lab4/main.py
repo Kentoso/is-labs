@@ -67,7 +67,12 @@ def print_sudoku_solution(solution):
         )
 
 
-csp = CSP(variables, domains, print_sudoku_solution)
+csp = CSP(
+    variables,
+    domains,
+    variable_heuristic="degree",
+    intermediate_assignment_hook=print_sudoku_solution,
+)
 add_row_constraints(csp)
 add_column_constraints(csp)
 add_subgrid_constraints(csp)

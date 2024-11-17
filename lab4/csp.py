@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Literal
 
 
 class Constraint:
@@ -16,11 +17,18 @@ class Constraint:
 
 
 class CSP:
-    def __init__(self, variables, domains, intermediate_assignment_hook=None):
+    def __init__(
+        self,
+        variables,
+        domains,
+        variable_heuristic: Literal["mrv", "degree"] | None = None,
+        intermediate_assignment_hook=None,
+    ):
         self.variables = variables
         self.domains = domains
         self.constraints: dict[str, list[Constraint]] = defaultdict(list)
         self.intermediate_assignment_hook = intermediate_assignment_hook
+        self.variable_heuristic = variable_heuristic
 
     def _call_intermediate_assignment_hook(self, assignment):
         if self.intermediate_assignment_hook is not None:
@@ -48,8 +56,7 @@ class CSP:
 
         return remaining_values
 
-    # with Minimum Remaining Values (MRV) heuristic
-    def select_unassigned_variable(self, assignment):
+    def _select_unassigned_variable_mrv(self, assignment):
         unassigned_vars = [v for v in self.variables if v not in assignment]
         print("------------")
         print("Unassigned Vars:", unassigned_vars)
@@ -60,6 +67,33 @@ class CSP:
         return min(
             unassigned_vars, key=lambda var: len(self.remaining_values(assignment, var))
         )
+
+    def _select_unassigned_variable_degree(self, assignment):
+        unassigned_vars = [v for v in self.variables if v not in assignment]
+        print("------------")
+        print("Unassigned Vars:", unassigned_vars)
+        print(
+            "Related Unassigned Vars:",
+            [
+                len(self.get_related_unassigned_vars(var, assignment))
+                for var in unassigned_vars
+            ],
+        )
+        return max(
+            unassigned_vars,
+            key=lambda var: len(self.get_related_unassigned_vars(var, assignment)),
+        )
+
+    def select_unassigned_variable(self, assignment):
+        if self.variable_heuristic == "mrv":
+            return self._select_unassigned_variable_mrv(assignment)
+        if self.variable_heuristic == "degree":
+            return self._select_unassigned_variable_degree(assignment)
+
+        unassigned_vars = [v for v in self.variables if v not in assignment]
+        print("------------")
+        print("Unassigned Vars:", unassigned_vars)
+        return unassigned_vars[0]
 
     def get_related_unassigned_vars(self, var, assignment):
         unassigned_vars = [v for v in self.variables if v not in assignment]
